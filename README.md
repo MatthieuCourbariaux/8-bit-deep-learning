@@ -26,7 +26,7 @@ Then, simply run the training script:
     python mnist_mlp.py
     
 It should run for about 15 minutes on a Titan X GPU.
-The final test error should be around **0.96%**.
+The final test error should be around **0.87%**.
 
 ## CIFAR-10 ConvNet
 

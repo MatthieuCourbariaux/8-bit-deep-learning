@@ -38,12 +38,10 @@ def quantizer(x,N=8,new_min=-1.,new_max=1.,stochastic=False):
   xq = T.cast(xq,'uint8')
   
   return xq
-  
-def quantized_dot(x, y, x_N=8, x_min=-1., x_max=1., y_N=8, y_min=-1.,y_max=1.):
     
-    # x and y are unint8 variables
-    # TODO: write a custom 8-bit dot product
-    z = T.dot(T.cast(x,'float32'),T.cast(y,'float32'))
+def unquantizer(x, y, z, x_N=8, x_min=-1., x_max=1., y_N=8, y_min=-1.,y_max=1.):
+    
+    # print "OK3"
     
     # element-wise stuff
     x_scale = (x_max-x_min)/((2.**x_N)-1.)
@@ -82,7 +80,10 @@ class QuantizedGemm(cuda.GpuOp):
     wq = quantizer(w,new_min=wmin,new_max=wmax)
     
     # low precision dot product
-    z = quantized_dot(xq, wq, x_min=xmin, x_max=xmax, y_min=wmin, y_max=wmax)
+    # x and y are unint8 variables
+    # TODO: write a custom 8-bit dot product
+    zq = T.dot(T.cast(xq,'float32'),T.cast(wq,'float32'))
+    z = unquantizer(xq, wq, zq, x_min=xmin, x_max=xmax, y_min=wmin, y_max=wmax)
     z = cuda.basic_ops.gpu_contiguous(cuda.basic_ops.as_cuda_ndarray_variable(z))
     
     return theano.Apply(self, [x,w,xq, xmin, xmax, wq, wmin, wmax,z], [self.output_type(z)()])
@@ -111,12 +112,14 @@ class QuantizedGemm(cuda.GpuOp):
     
     # Inputs' gradient
     # Low precision dot product
-    gxq = quantized_dot(gzq, wq.T, x_min = gzmin, x_max=gzmax, y_min=wmin, y_max=wmax)
+    gxq = T.dot(T.cast(gzq,'float32'),T.cast(wq.T,'float32'))
+    gxq = unquantizer(gzq, wq.T, gxq, x_min = gzmin, x_max=gzmax, y_min=wmin, y_max=wmax)
     gx = gxq
     
     # Weights' gradient
     # Low precision dot product
-    gwq = quantized_dot(xq.T, gzq, x_min = xmin, x_max=xmax, y_min=gzmin, y_max=gzmax)
+    gwq = T.dot(T.cast(xq.T,'float32'),T.cast(gzq,'float32'))
+    gwq = unquantizer(xq.T, gzq, gwq, x_min = xmin, x_max=xmax, y_min=gzmin, y_max=gzmax)
     gw = gwq 
     
     return gx, gw, gxq, disconnected_type(), disconnected_type(), gwq, disconnected_type(), disconnected_type(), gz

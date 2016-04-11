@@ -33,11 +33,11 @@ if __name__ == "__main__":
     print("LR_start = "+str(LR_start))
     LR_decay = .1
     print("LR_decay = "+str(LR_decay))
-    LR_patience = 50
+    LR_patience = 10
     print("LR_patience = "+str(LR_patience))
     # Training parameters
     # patience = LR_patience * 2.
-    patience = 50
+    patience = LR_patience
     print("patience = "+str(patience))
     
     save_path = "mnist_parameters.npz"
